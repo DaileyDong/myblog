@@ -1,2 +1,12 @@
  <% include header%>
+ <%docs.forEach(function(doc){%>
+ <p><h2><a href="#"><%=doc.title%></a></h2></p>
+ <p>
+  作者：<a href=""><%=doc.name%></a>
+  日期：<%=doc.time%>
+ </p>
+ <p>
+  <%=doc.content%>
+ </p>
+ <%})%>
  <%include footer%>

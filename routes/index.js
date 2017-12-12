@@ -1,5 +1,7 @@
 //引入Users集合操作方法
 var User=require('../model/User');
+//引入Post集合操作方法
+var Post=require('../model/Post');
 //引入加密插件
 var crypto=require('crypto');
 //权限判断（中间件）
@@ -23,12 +25,21 @@ function checkNotLogin(req,res,next) {
 module.exports = function (app) {
   //首页
   app.get('/',function (req,res) {
-        res.render('index',{
-            title:'首页',
-            user:req.session.user,
-            success:req.flash('success').toString(),
-            error:req.flash('error').toString()
-        })
+      Post.get(null,function (err,docs) {
+          if(err){
+              req.flash('error',err);
+              return res.redirect('/');
+          }
+          console.log(docs);
+          res.render('index',{
+              title:'首页',
+              user:req.session.user,
+              success:req.flash('success').toString(),
+              error:req.flash('error').toString(),
+              docs:docs
+          })
+      })
+
     })
     //注册页
     app.get('/reg',checkNotLogin,function (req,res) {
@@ -144,7 +155,16 @@ module.exports = function (app) {
     })
     //发表行为
     app.post('/post',function (req,res) {
-
+          var currentName=req.session.user.username;
+          var newPost=new Post(currentName,req.body.title,req.body.content);
+          newPost.save(function (err) {
+              if(err){
+                  req.flash('error',err);
+                  return res.redirect('/');
+              }
+              req.flash('success','发表成功!');
+              return res.redirect('/');
+          })
     })
 
     //退出
