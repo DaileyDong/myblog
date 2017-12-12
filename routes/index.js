@@ -2,6 +2,23 @@
 var User=require('../model/User');
 //引入加密插件
 var crypto=require('crypto');
+//权限判断（中间件）
+//未登录无法访问发表页和退出页
+function checkLogin(req,res,next) {
+    if(!req.session.user){
+        req.flash('error','未登录！');
+       return res.redirect('/login');
+    }
+    next();
+}
+//已登录无法访问登录页和注册页
+function checkNotLogin(req,res,next) {
+    if(req.session.user){
+        req.flash('error','已登录！');
+       return  res.redirect('back');
+    }
+    next();
+}
 
 module.exports = function (app) {
   //首页
@@ -14,7 +31,7 @@ module.exports = function (app) {
         })
     })
     //注册页
-    app.get('/reg',function (req,res) {
+    app.get('/reg',checkNotLogin,function (req,res) {
         res.render('reg',{
             title:'注册页',
             user:req.session.user,
@@ -29,6 +46,12 @@ module.exports = function (app) {
         var username=req.body.username;
         var password=req.body.password;
         var password_repeat=req.body['password_repeat'];
+        var email=req.body.email;
+        //2判断是否为空
+        if(!(username||password||password_repeat ||email)){
+            req.flash('error','注册信息不完整！');
+            return res.redirect('/reg');
+        }
 
         //2、判断两次密码
         if(password!=password_repeat){
@@ -51,24 +74,25 @@ module.exports = function (app) {
                 return res.redirect('/reg');
             }
             if(user){
-                req.flash('error','用户已存在');
+                req.flash('error','用户已存在!');
                 return res.redirect('/reg');
             }
+            //5、将用户存入数据库，并跳转到首页
             newUser.save(function (err,user) {
                 if(err){
                     req.flash('error',err);
-                    res.redirect('/reg');
+                    return  res.redirect('/reg');
                 }
                 req.session.user=newUser;
-                req.flash('success','注册成功');
-                res.redirect('/');
+                req.flash('success','注册成功!');
+                return  res.redirect('/');
             })
         })
-        //5、将用户存入数据库，并跳转到首页
+
     })
 
     //登录页
-    app.get('/login',function (req,res) {
+    app.get('/login',checkNotLogin,function (req,res) {
         res.render('login',{
             title:'登录页',
             user:req.session.user,
@@ -78,11 +102,39 @@ module.exports = function (app) {
     })
     //登录行为
     app.post('/login',function (req,res) {
-
+        var username=req.body.username;
+        // 1、对密码进行加密
+        var md5=crypto.createHash('md5');
+        var password=md5.update(req.body.password).digest('hex');
+        //2.判断是否为空
+        if(username=='' || password==''){
+            req.flash('error','登录信息不完整!');
+            return res.redirect('/login');
+        }
+        //2、判断用户是否存在
+        User.get(req.body.username,function (err,user) {
+            if(err){
+                req.flash('error',err);
+                return res.redirect('/login');
+            }
+            if(!user){
+                req.flash('error','用户不存在！');
+                return res.redirect('/login');
+            }
+            //3、判断密码
+            if(password!=user.password){
+                req.flash('error','密码不正确！');
+                return res.redirect('/login');
+            }
+            // 4、把用户信息保存到session，给出提示信息，跳转首页
+            req.session.user=user;
+            req.flash('success','登录成功！');
+            return res.redirect('/');
+        })
     })
 
     //发表页
-    app.get('/post',function (req,res) {
+    app.get('/post',checkLogin,function (req,res) {
         res.render('post',{
             title:'发表页',
             user:req.session.user,
@@ -96,9 +148,10 @@ module.exports = function (app) {
     })
 
     //退出
-    app.get('/logout',function (req,res) {
+    app.get('/logout',checkLogin,function (req,res) {
+        //清除session信息，并给出提示信息，跳转到首页
         req.session.user=null;
-        req.flash('success','退出成功');
-        res.redirect('/');
+        req.flash('success','退出成功!');
+        return res.redirect('/');
     })
 }
