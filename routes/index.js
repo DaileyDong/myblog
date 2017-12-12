@@ -4,6 +4,19 @@ var User=require('../model/User');
 var Post=require('../model/Post');
 //引入加密插件
 var crypto=require('crypto');
+//引入上传插件
+var multer=require('multer');
+//配置信息
+var storage=multer.diskStorage({
+    destination:function (req,file,cb) {
+        cb(null,'./public/images');
+    },
+    filename:function (req,file,cb) {
+        cb(null,file.originalname);
+    }
+});
+
+var upload=multer({storage:storage});
 //权限判断（中间件）
 //未登录无法访问发表页和退出页
 function checkLogin(req,res,next) {
@@ -24,13 +37,12 @@ function checkNotLogin(req,res,next) {
 
 module.exports = function (app) {
   //首页
-  app.get('/',function (req,res) {
+    app.get('/',function (req,res) {
       Post.get(null,function (err,docs) {
           if(err){
               req.flash('error',err);
               return res.redirect('/');
           }
-          console.log(docs);
           res.render('index',{
               title:'首页',
               user:req.session.user,
@@ -167,6 +179,20 @@ module.exports = function (app) {
           })
     })
 
+    //上传页
+    app.get('/upload',checkLogin,function (req,res) {
+        res.render('upload',{
+            title:'上传',
+            user:req.session.user,
+            success:req.flash('success').toString(),
+            error:req.flash('error').toString()
+        })
+    })
+    //上传行为
+    app.post('/upload',upload.array('filename',5),function (req,res) {
+        req.flash('success','上传成功!');
+        return res.redirect('/upload');
+    })
     //退出
     app.get('/logout',checkLogin,function (req,res) {
         //清除session信息，并给出提示信息，跳转到首页
