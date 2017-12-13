@@ -1,0 +1,9 @@
+<%include header%>
+<form method="post" action="/edit/<%=doc.name%>/<%=doc.title%>/<%=doc.time%>">
+    标题：<br>
+    <input type="text" name="title" value="<%=doc.title%>" style="width:200px" disabled><br>
+    内容：<br>
+    <textarea name="content" id="" cols="80" rows="20"><%=doc.content%></textarea><br>
+    <button type="submit">编辑</button>
+</form>
+<%include footer%>
