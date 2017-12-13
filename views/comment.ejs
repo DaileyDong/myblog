@@ -1,0 +1,20 @@
+<!--留言的展示部分-->
+<br>
+<br>
+<% doc.comments.forEach(function(comment){%>
+<p>
+    <%= comment.c_name %>
+    <span class="info">日期:<%= comment.c_time %></span>
+</p>
+<p>
+    <%- comment.c_content %>
+</p>
+<%})%>
+<!--留言的添加部分-->
+<% if(user){ %>
+<form method="post" action="/comment/<%= doc.name %>/<%= doc.title %>/<%= doc.time %>">
+    发布人:<%= user.username %><br>
+    <textarea name="c_content" rows="5" cols="80"></textarea>
+    <input type="submit" value="提交">
+</form>
+<% } %>
