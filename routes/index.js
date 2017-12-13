@@ -2,6 +2,8 @@
 var User=require('../model/User');
 //引入Post集合操作方法
 var Post=require('../model/Post');
+//引入Comment字段
+var Comment=require('../model/Comment');
 //引入加密插件
 var crypto=require('crypto');
 //引入上传插件
@@ -43,7 +45,6 @@ module.exports = function (app) {
               req.flash('error',err);
               return res.redirect('/');
           }
-          //console.log(docs);
           res.render('index',{
               title:'首页',
               user:req.session.user,
@@ -213,7 +214,7 @@ module.exports = function (app) {
                     req.flash('error',err);
                     return res.redirect('/');
                 }
-               return res.render('user',{
+                return res.render('user',{
                     title:'用户文章列表',
                     user:req.session.user,
                     success:req.flash('success').toString(),
@@ -239,5 +240,68 @@ module.exports = function (app) {
             })
         })
     })
+    //编辑页
+    app.get('/edit/:name/:title/:time',checkLogin,function (req,res) {
+        Post.edit(req.params.name,req.params.title,req.params.time,function (err,doc) {
+            if(err){
+                req.flash("error",err);
+                return res.redirect('/');
+            }
+            return res.render('edit',{
+                title:'编辑页',
+                user:req.session.user,
+                success:req.flash('success').toString(),
+                error:req.flash('error').toString(),
+                doc:doc
+            })
+        })
+    })
+    //编辑行为
+   app.post('/edit/:name/:title/:time',function (req,res) {
+       Post.update(req.params.name,req.params.title,req.params.time,req.body.content,function (err,doc) {
+           var url=encodeURI('/u/' + req.params.name+ '/' + req.params.title + '/' + req.params.time);
 
+           if(err){
+               req.flash('error',err);
+               return res.redirect('/');
+           }
+           req.flash('success','编辑成功！');
+           return res.redirect(url);
+       })
+   })
+    //删除
+    app.get('/remove/:name/:title/:time',function (req,res) {
+        Post.remove(req.params.name,req.params.title,req.params.time,function (err) {
+            if(err){
+                req.flash('error',err);
+                return res.redirect('/');
+            }
+            req.flash('success','删除成功！');
+            return res.redirect('/');
+        })
+    })
+    //添加留言
+    app.post('/comment/:name/:title/:time',function (req,res) {
+        //格式化时间函数
+        function formatDate(num) {
+            return num<10?'0'+num:num;
+        }
+        var date = new Date();
+        var now = date.getFullYear() + "-" + formatDate(date.getMonth() + 1) + "-" + formatDate(date.getDate()) + " " + formatDate(date.getHours()) + ":" + formatDate(date.getMinutes()) + ":" + formatDate(date.getSeconds());
+       //收集保存内容
+        var comment={
+            c_name:req.session.user.name,
+            c_time:now,
+            c_content:req.body.c_content
+        }
+        var newComment=new Comment(req.params.name,req.params.title,req.params.time,comment);
+        newComment.save(function (err) {
+            if(err){
+                req.flash('error',err);
+                return res.redirect('/');
+            }
+            req.flash('success','留言成功！');
+           return  res.redirect('back');
+        })
+    })
 }
