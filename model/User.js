@@ -1,8 +1,8 @@
 //连接数据库实例
 var mongodb=require('./db');
-//创建一个构造函数，命令为User，里面的username，password，email，分别为存储的用户名，密码，邮箱
+//创建一个构造函数，命令为User，里面的name，password，email，分别为存储的用户名，密码，邮箱
 function  User(user) {
-    this.username=user.username;
+    this.name=user.name;
     this.password=user.password;
     this.email=user.email;
 }
@@ -10,7 +10,7 @@ module.exports=User;
 //保存用户注册信息
 User.prototype.save=function (callback) {
     var user= {
-        username: this.username,
+        name: this.name,
         password: this.password,
         email: this.email,
     }
@@ -31,14 +31,14 @@ User.prototype.save=function (callback) {
               if(err){
                   return callback(err);
               }
-              callback(null,user[0]);
+              callback(null,user);
           })
 
         })
     })
     }
     //读取用户信息
-User.get=function (username,callback) {
+User.get=function (name,callback) {
     //打开数据库
     mongodb.open(function (err,db) {
         if(err){
@@ -50,7 +50,7 @@ User.get=function (username,callback) {
                 return callback(err);
             }
             //查询name指定信息，并返回
-            collection.findOne({username:username},function (err,user) {
+            collection.findOne({name:name},function (err,user) {
                 mongodb.close();
                 if(err){
                     return callback(err);

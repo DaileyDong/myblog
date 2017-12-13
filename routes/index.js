@@ -38,11 +38,12 @@ function checkNotLogin(req,res,next) {
 module.exports = function (app) {
   //首页
     app.get('/',function (req,res) {
-      Post.get(null,function (err,docs) {
+      Post.getAll(null,function (err,docs) {
           if(err){
               req.flash('error',err);
               return res.redirect('/');
           }
+          //console.log(docs);
           res.render('index',{
               title:'首页',
               user:req.session.user,
@@ -66,12 +67,12 @@ module.exports = function (app) {
     app.post('/reg',function (req,res) {
        //把数据放到数据库
         //1、收集数据
-        var username=req.body.username;
+        var name=req.body.name;
         var password=req.body.password;
         var password_repeat=req.body['password_repeat'];
         var email=req.body.email;
         //2判断是否为空
-        if(!(username||password||password_repeat ||email)){
+        if(!(name||password||password_repeat ||email)){
             req.flash('error','注册信息不完整！');
             return res.redirect('/reg');
         }
@@ -86,12 +87,12 @@ module.exports = function (app) {
         password=md5.update(req.body.password).digest('hex');
 
         var newUser=new User({
-            username:username,
+            name:name,
             password:password,
             email:req.body.email
         })
         //4、判断用户是否存在
-        User.get(newUser.username,function (err,user) {
+        User.get(newUser.name,function (err,user) {
             if(err){
                 req.flash('error',err);
                 return res.redirect('/reg');
@@ -125,17 +126,17 @@ module.exports = function (app) {
     })
     //登录行为
     app.post('/login',function (req,res) {
-        var username=req.body.username;
+        var name=req.body.name;
         // 1、对密码进行加密
         var md5=crypto.createHash('md5');
         var password=md5.update(req.body.password).digest('hex');
         //2.判断是否为空
-        if(username=='' || password==''){
+        if(name=='' || password==''){
             req.flash('error','登录信息不完整!');
             return res.redirect('/login');
         }
         //2、判断用户是否存在
-        User.get(req.body.username,function (err,user) {
+        User.get(req.body.name,function (err,user) {
             if(err){
                 req.flash('error',err);
                 return res.redirect('/login');
@@ -167,7 +168,7 @@ module.exports = function (app) {
     })
     //发表行为
     app.post('/post',function (req,res) {
-          var currentName=req.session.user.username;
+          var currentName=req.session.user.name;
           var newPost=new Post(currentName,req.body.title,req.body.content);
           newPost.save(function (err) {
               if(err){
@@ -200,4 +201,43 @@ module.exports = function (app) {
         req.flash('success','退出成功!');
         return res.redirect('/');
     })
+    //用户页
+    app.get('/u/:name',function (req,res) {
+        User.get(req.params.name,function (err,user) {
+            if(!user){
+                req.flash('error','查询用户不存在！');
+                return res.redirect('/');
+            }
+            Post.getAll(user.name,function(err,docs) {
+                if(err){
+                    req.flash('error',err);
+                    return res.redirect('/');
+                }
+               return res.render('user',{
+                    title:'用户文章列表',
+                    user:req.session.user,
+                    success:req.flash('success').toString(),
+                    error:req.flash('error').toString(),
+                    docs:docs
+                })
+            })
+        })
+    })
+    //文章详情页
+    app.get('/u/:name/:title/:time',function (req,res) {
+        Post.getOne(req.params.name,req.params.title,req.params.time,function (err,doc) {
+            if(err){
+                req.flash('error',err);
+                return res.redirect('/');
+            }
+            return res.render('article',{
+                title:'文章详情页',
+                user:req.session.user,
+                success:req.flash('success').toString(),
+                error:req.flash('error').toString(),
+                doc:doc
+            })
+        })
+    })
+
 }
