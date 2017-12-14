@@ -7,6 +7,7 @@ function Post(name,title,content) {
     this.title=title;
     this.content=content;
 }
+
 //格式化时间函数
 function formatDate(num) {
    return num<10?'0'+num:num;
@@ -25,6 +26,7 @@ Post.prototype.save=function (callback) {
         time: now,
         comments:[]//添加留言
     }
+
     //打开数据库
     mongodb.open(function (err, db) {
         if (err) {
@@ -46,7 +48,8 @@ Post.prototype.save=function (callback) {
     })
 }
     //读取post集合,获取所有文章
-    Post.getAll = function(name, callback) {
+//page当前页数
+    Post.getTen = function(name,page, callback) {
         //打开数据库
         mongodb.open(function (err, db) {
             if (err) {
@@ -62,20 +65,29 @@ Post.prototype.save=function (callback) {
                 if (name) {
                     query.name = name;
                 }
-                //根据 query 对象查询文章
-                collection.find(query).sort({
-                    time: -1
-                }).toArray(function (err, docs) {
-                    mongodb.close();
-                    if (err) {
-                        return callback(err);//失败！返回 err
-                    }
-                    //将每篇文章在读取的时候以markdown的格式进行解析
-                    docs.forEach(function (doc) {
-                        doc.content=markdown.toHTML(doc.content);
-                    })
-                   return callback(null, docs);//成功！以数组形式返回查询的结果
-                });
+               collection.count(query,function (err,total) {
+                   if(err){
+                       mongodb.close();
+                       return callback(err);
+                   }
+                   //根据 query 对象查询文章
+                   collection.find(query,{
+                       skip:(page-1)*10,
+                       limit:10
+                   }).sort({
+                       time: -1
+                   }).toArray(function (err, docs) {
+                       mongodb.close();
+                       if (err) {
+                           return callback(err);//失败！返回 err
+                       }
+                       //将每篇文章在读取的时候以markdown的格式进行解析
+                       docs.forEach(function (doc) {
+                           doc.content=markdown.toHTML(doc.content);
+                       })
+                       return callback(null,docs,total);//成功！以数组形式返回查询的结果
+                   });
+               })
             });
         });
 

@@ -40,7 +40,9 @@ function checkNotLogin(req,res,next) {
 module.exports = function (app) {
   //首页
     app.get('/',function (req,res) {
-      Post.getAll(null,function (err,docs) {
+        //当前页数
+        var page=parseInt(req.query.page)||1;
+      Post.getTen(null,page,function (err,docs,total) {
           if(err){
               req.flash('error',err);
               return res.redirect('/');
@@ -50,6 +52,10 @@ module.exports = function (app) {
               user:req.session.user,
               success:req.flash('success').toString(),
               error:req.flash('error').toString(),
+              page:page,
+              //判断首页和尾页
+              isFirstPage:(page-1)*10==0,
+              isLastPage:(page-1)*10+docs.length==total,
               docs:docs
           })
       })
@@ -204,12 +210,13 @@ module.exports = function (app) {
     })
     //用户页
     app.get('/u/:name',function (req,res) {
+        var page=parseInt(req.query.page || 1);
         User.get(req.params.name,function (err,user) {
             if(!user){
                 req.flash('error','查询用户不存在！');
                 return res.redirect('/');
             }
-            Post.getAll(user.name,function(err,docs) {
+            Post.getTen(user.name,page,function(err,docs,total) {
                 if(err){
                     req.flash('error',err);
                     return res.redirect('/');
@@ -219,6 +226,10 @@ module.exports = function (app) {
                     user:req.session.user,
                     success:req.flash('success').toString(),
                     error:req.flash('error').toString(),
+                    page:page,
+                    //判断首页和尾页
+                    isFirstPage:(page-1)*10==0,
+                    isLastPage:(page-1)*10+docs.length==total,
                     docs:docs
                 })
             })
