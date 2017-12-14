@@ -2,10 +2,11 @@ var mongodb=require('./db');
 //引入markdown
 var markdown=require('markdown').markdown;
 
-function Post(name,title,content) {
+function Post(name,title,content,tags) {
     this.name=name;
     this.title=title;
     this.content=content;
+    this.tags=tags;
 }
 
 //格式化时间函数
@@ -23,6 +24,7 @@ Post.prototype.save=function (callback) {
         name: this.name,
         title: this.title,
         content: this.content,
+        tags:this.tags,
         time: now,
         comments:[]//添加留言
     }
@@ -48,7 +50,7 @@ Post.prototype.save=function (callback) {
     })
 }
     //读取post集合,获取所有文章
-//page当前页数
+   //page当前页数
     Post.getTen = function(name,page, callback) {
         //打开数据库
         mongodb.open(function (err, db) {
@@ -201,4 +203,52 @@ Post.prototype.save=function (callback) {
              })
          })
      }
+     //存档
+  Post.getArchive=function (callabck) {
+    mongodb.open(function (err,db) {
+        if(err){
+            return callabck(err);
+        }
+        db.collection('posts',function (err,collection) {
+            if(err){
+                mongodb.close();
+                return callabck(err);
+            }
+            collection.find({},{
+                name:1,
+                title:1,
+                time:1
+            }).sort({time:-1}).toArray(function (err,docs) {
+                mongodb.close();
+                if(err){
+                    return callabck(err);
+                }
+                return callabck(null,docs);
+            })
+        })
+    })
+  }
+  //取出所有的标签
+  Post.getTags=function (callback) {
+      mongodb.open(function (err,db) {
+          if(err){
+              return callback(err)
+          }
+          db.collection('posts',function (err,collection) {
+              if(err){
+                  mongodb.close();
+                  return callback(err);
+              }
+              //distinct去重，以数组形式返回
+              collection.distinct('tags',function (err,docs) {
+                  mongodb.close();
+                  if(err){
+                      return callback(err);
+                  }
+                  return callback(null,docs);
+              })
+
+          })
+      })
+  }
 module.exports=Post;

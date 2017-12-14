@@ -175,8 +175,10 @@ module.exports = function (app) {
     })
     //发表行为
     app.post('/post',function (req,res) {
+        //接收标签
+        var tags=[req.body.tag1,req.body.tag2,req.body.tag3];
           var currentName=req.session.user.name;
-          var newPost=new Post(currentName,req.body.title,req.body.content);
+          var newPost=new Post(currentName,req.body.title,req.body.content,tags);
           newPost.save(function (err) {
               if(err){
                   req.flash('error',err);
@@ -313,6 +315,38 @@ module.exports = function (app) {
             }
             req.flash('success','留言成功！');
            return  res.redirect('back');
+        })
+    })
+    //存档
+    app.get('/archive',function (req,res) {
+        Post.getArchive(function (err,docs) {
+            if(err){
+                req.flash('error',err);
+                return res.redirect('/');
+            }
+            return res.render('archive',{
+                title:'存档',
+                user:req.session.user,
+                success:req.flash('success').toString(),
+                error:req.flash('error').toString(),
+                docs:docs
+            })
+        })
+    })
+    //标签页
+    app.get('/tags',function (req,res) {
+        Post.getTags(function (err,docs) {
+            if(err){
+                req.flash('error',err);
+                return res.redirect('/');
+            }
+            return res.render('tags',{
+                title:'标签页',
+                user:req.session.user,
+                success:req.flash('success').toString(),
+                error:req.flash('error').toString(),
+                docs:docs
+            })
         })
     })
 }
